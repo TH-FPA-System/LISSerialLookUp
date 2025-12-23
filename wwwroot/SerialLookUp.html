@@ -1,0 +1,138 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Serial Lookup</title>
+
+    
+    <link href="css/normalize.min.css" rel="stylesheet" />
+    <link href="css/SerialLook.css" rel="stylesheet" />
+
+    <!-- ✅ LOAD XLSX FIRST -->
+    <script src="js/xlsx.full.min.js"></script>
+    <!-- ✅ THEN your script -->
+    <script src="js/SerialLook.js"></script>
+</head>
+
+<body>
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <div class="text">Loading...</div>
+    </div>
+
+    <div class="section left-card">
+
+
+        <div class="two-tables-grid">
+
+            <!-- Product Details -->
+            <div>
+                <h2>
+                    Serial Lookup (Live)
+                </h2>
+                <!-- Search input -->
+                <div>
+                    <input type="text" id="serialInput" placeholder="Enter serial number">
+                    <button onclick="loadData()">Search</button>
+                </div>
+
+                <table>
+                    <tbody>
+                        <tr><th>Serial FPA</th><td id="serialFPA"></td></tr>
+                        <tr><th>Serial GEA</th><td id="serialGEA"></td></tr>
+                        <tr><th>Serial HAIER</th><td id="serialHAIER"></td></tr>
+                        <tr><th>Part</th><td id="part"></td></tr>
+                        <tr><th>Part Issue</th><td id="partIssue"></td></tr>
+                        <tr><th>Serial Issue Date</th><td id="serialIssueDate"></td></tr>
+                        <tr><th>VAI Foam Code</th><td id="vaI_FoamCode"></td></tr>
+                        <tr><th>Status</th><td id="status"></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tracking Information -->
+            <div>
+                <button class="collapsible">
+                    <span class="arrow">▼</span> Tracking Information
+                </button>
+
+                <div class="content" id="tracking-content">
+                    <table id="tracking-table">
+                        <thead>
+                            <tr>
+                                <th>Workcell</th>
+                                <th>Task</th>
+                                <th>Store Location</th>
+                                <th>Status</th>
+                                <!--<th>Grade</th>
+                    <th>Zone</th>-->
+                                <th>Store</th>
+                                <th>Last Maint</th>
+                                <th>Last Maint Logon</th>
+                                <th>Update Ref</th>
+                                <th>Order Number</th>
+                                <th>Reject Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Testing Information -->
+        <button class="collapsible">  <span class="arrow">▼</span> Testing Information</button>
+        <div class="content" id="testing-content">
+            <div style="margin-bottom: 2px;">
+                <!-- Export buttons as icons with text -->
+                <!--<button onclick="exportTestingCSV()" title="Export CSV" style="font-size:16px; margin-right:5px; background: none; border: none; cursor: pointer; color: #333; display: flex; align-items: center;">
+                    📄 <span style="margin-left: 5px;">Export CSV</span>
+                </button>-->
+                <button onclick="exportTestingExcel()" title="Export Excel" style="font-size:16px; background: none; border: none; cursor: pointer; color: #333; display: flex; align-items: center;">
+                    📊 <span style="margin-left: 2px;">Export Excel</span>
+                </button>
+            </div>
+            <table id="testing-table">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Run</th>
+                        <th>Test Part</th>
+                        <th>Description</th>
+                        <th>Test Result</th>
+                        <th>Test Fault</th>
+                        <th>Status</th>
+                        <th>Date Tested</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+        </div>
+
+
+        <!-- Rework Records -->
+        <button class="collapsible">  <span class="arrow">▼</span> Rework Records</button>
+        <div class="content">
+            <table id="rework-table">
+                <thead>
+                    <tr>
+                        <th>Part</th>
+                        <th>Date Recorded</th>
+                        <th>Area</th>
+                        <th>Repair Code</th>
+                        <th>Fault Code</th>
+                        <th>Mold</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+
+</body>
+</html>
+
+
