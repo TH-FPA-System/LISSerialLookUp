@@ -46,65 +46,42 @@
     <div id="cy"></div>
 
     <script>
-        // ================================
-        // 1. Fetch node layout from API safely
-        // ================================
-        async function loadLineLayout(line = "DISHDRAWER") {
-            try {
-                const response = await fetch(`/api/FactoryLine/${line}`);
-                if (!response.ok) {
-                    alert("Failed to load layout from API");
-                    return [];
-                }
+        (async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const line = urlParams.get("line") || "DISHDRAWER";
+            const serial = urlParams.get("SerialNo");
+            if (!serial) { alert("SerialNo is required in URL"); return; }
 
+            let layoutConfig = [], trackHistory = [];
+
+            try {
+                const response = await fetch(`/api/FactoryLine/${line}?serial=${encodeURIComponent(serial)}`);
+                if (!response.ok) throw new Error(`API returned ${response.status}`);
                 const data = await response.json();
 
-                if (!data?.nodes || !Array.isArray(data.nodes)) {
-                    console.error("Invalid API response:", data);
-                    return [];
-                }
-
-                // Map nodes
-                return data.nodes.map(n => ({
-                    store: n?.store || "unknown",
-                    x: n?.positionX ?? 0,
-                    y: n?.positionY ?? 0,
-                    label: n?.label || "Unknown"
+                layoutConfig = data.nodes.map(n => ({
+                    store: n.store,
+                    x: n.positionX,
+                    y: n.positionY,
+                    label: n.label
                 }));
 
+                trackHistory = data.history.filter(h => h.store_location);
+
             } catch (err) {
-                console.error("Error fetching layout:", err);
-                return [];
-            }
-        }
-
-        // ================================
-        // 2. Example tracking status (can be replaced with API later)
-        // ================================
-        const trackingStatus = {
-            "DDBRTH": "P",
-            "DDTRIM": "P",
-            "DDAT02": "P",
-            "RWDD2": "P",
-            "DDROUTER": "R"
-        };
-
-        const statusColor = {
-            P: "#2ecc71", // green
-            R: "#e74c3c", // red
-            D: "#f1c40f"  // yellow
-        };
-
-        // ================================
-        // 3. Initialize Cytoscape safely
-        // ================================
-        (async () => {
-            const layoutConfig = await loadLineLayout("DISHDRAWER");
-
-            if (!layoutConfig.length) {
-                alert("No nodes found for this line.");
+                console.error(err);
+                alert("Failed to fetch layout or history");
                 return;
             }
+            const statusColor = {
+                P: "#27AE60",  // green
+                R: "#3498db",  // soft blue
+                D: "#95a5a6"   // grey
+            };
+
+
+            const trackingStatus = {};
+            trackHistory.forEach(h => trackingStatus[h.store_location] = h.status);
 
             const cy = cytoscape({
                 container: document.getElementById("cy"),
@@ -113,13 +90,15 @@
                     {
                         selector: "node",
                         style: {
-                            "label": "data(label)",
+                            label: "data(label)",
                             "background-color": "data(color)",
-                            "shape": "round-rectangle",
-                            "width": 160,
-                            "height": 46,
+                            shape: "round-rectangle",
+                            width: 120,
+                            height: 46,
                             "font-size": 12,
-                            "text-valign": "center"
+                            "text-valign": "center",
+                            "text-halign": "center",
+                            "overlay-opacity": 0
                         }
                     },
                     {
@@ -127,7 +106,7 @@
                         style: {
                             "curve-style": "bezier",
                             "target-arrow-shape": "triangle",
-                            "width": 2,
+                            width: 2,
                             "line-color": "#b0b8c2",
                             "target-arrow-color": "#b0b8c2"
                         }
@@ -135,35 +114,78 @@
                 ]
             });
 
-            // ================================
-            // 4. Add nodes with colors
-            // ================================
+            // -----------------------
+            // Assign sequential run numbers for green nodes (P) per occurrence
+            // -----------------------
+            let runNo = 1;
+            const nodeRunMap = {}; // we will store arrays for each node
+
+            // Sort history by last_maint ascending
+            const sortedHistory = trackHistory
+                .filter(h => h.store_location)
+                .sort((a, b) => new Date(a.last_maint) - new Date(b.last_maint));
+
+            // Assign run numbers for green nodes per occurrence
+            sortedHistory.forEach(h => {
+                const nodeId = h.store_location;
+                const status = trackingStatus[nodeId] || "D";
+
+                if ((status === "P" || status === "R" || status === "D") && layoutConfig.find(n => n.store === nodeId)) {
+                    if (!nodeRunMap[nodeId]) nodeRunMap[nodeId] = [];
+                    nodeRunMap[nodeId].push(runNo++);
+                }
+            });
+
+            // -----------------------
+            // Add nodes to Cytoscape
+            // -----------------------
             layoutConfig.forEach(cfg => {
-                if (!cfg) return; // skip undefined
                 const status = trackingStatus[cfg.store] || "D";
+                let label = cfg.label;
+
+                // If node has multiple run numbers, show all separated by comma
+                if ((status === "P" || status === "R" || status === "D") && nodeRunMap[cfg.store]) {
+                    label = nodeRunMap[cfg.store].map(n => `#${n}`).join(", ") + " " + cfg.label;
+                }
+
                 cy.add({
-                    data: { id: cfg.store, label: cfg.label, color: statusColor[status] },
+                    data: {
+                        id: cfg.store,
+                        label: label,
+                        color: statusColor[status]
+                    },
                     position: { x: cfg.x * 10, y: (100 - cfg.y) * 6 }
                 });
             });
 
-            // ================================
-            // 5. Add edges sequentially
-            // ================================
-            for (let i = 0; i < layoutConfig.length - 1; i++) {
-                const source = layoutConfig[i]?.store;
-                const target = layoutConfig[i + 1]?.store;
-                if (!source || !target) continue; // skip if undefined
-                cy.add({ data: { source, target } });
+            // -----------------------
+            // Add edges in chronological order
+            // -----------------------
+            let lastValidNode = null;
+            sortedHistory.forEach(h => {
+                const nodeId = h.store_location;
+                if (!cy.getElementById(nodeId).empty()) {
+                    if (lastValidNode) {
+                        cy.add({
+                            data: {
+                                id: `e${lastValidNode}_${nodeId}`,
+                                source: lastValidNode,
+                                target: nodeId
+                            }
+                        });
+                    }
+                    lastValidNode = nodeId;
+                }
+            });
+
+            // Highlight last node
+            const lastNodeId = sortedHistory.length ? sortedHistory[sortedHistory.length - 1].store_location : null;
+            if (lastNodeId && !cy.getElementById(lastNodeId).empty()) {
+                cy.getElementById(lastNodeId).addClass("active");
             }
 
-            // ================================
-            // 6. Highlight last node as active
-            // ================================
-            const lastNodeId = layoutConfig[layoutConfig.length - 1]?.store;
-            if (lastNodeId) cy.getElementById(lastNodeId).addClass("active");
-
             cy.nodes().lock();
+
         })();
     </script>
 </body>

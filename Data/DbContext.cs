@@ -6,5 +6,9 @@ public class AppDbContext : DbContext
         : base(options)
     { }
 
+    // Line layout table
     public DbSet<LISLineInfo> LISLineInfo { get; set; }
+
+    // Serial tracking history
+    public DbSet<TrackHistory> TrackHistory { get; set; }
 }
