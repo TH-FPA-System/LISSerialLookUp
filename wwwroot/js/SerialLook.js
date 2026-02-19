@@ -93,8 +93,17 @@ async function loadData() {
                 // TASK header only (default visible)
                 const taskHeader = document.createElement('div');
                 taskHeader.className = 'task-header';
-                taskHeader.innerHTML = `<span>TASK ${taskId}</span>
-                                <span>Latest: <span class="${latestResultClass}">${latestPass ? 'PASS' : 'FAIL'}</span></span>`;
+                const startDate = formatDateYYYYMMDD(yesterday); // calculate yesterday
+                const endDate = formatDateYYYYMMDD(tomorrow);   // calculate tomorrow
+
+                taskHeader.innerHTML = `
+<a href="http://tiger/QA_LISSummary/ResultPartTest?startDate=${startDate}&endDate=${endDate}&TaskNo=${taskId}" 
+   target="_blank" class="task-link">
+   TASK ${taskId}
+</a>
+<span>Latest: <span class="${latestResultClass}">${latestPass ? 'PASS' : 'FAIL'}</span></span>
+`;
+
                 taskDiv.appendChild(taskHeader);
 
                 // Container for all runs (hidden by default)
@@ -137,13 +146,21 @@ async function loadData() {
                         const span = document.createElement('div');
                         span.innerHTML = `
 <div class="test-row ${isFail ? 'row-fail' : ''}">
-    <div class="col part">${item.testPart}</div>
+   <div class="col part">
+    <a href="http://tiger/LIS_ITEM/ItemCheck/GETPTBYCATASK?Part=&taskChk=&partNo=${item.testPart}" target="_blank">
+        ${item.testPart}
+    </a>
+</div>
     <div class="col description">${item.description || '-'}</div>
     <div class="col result"><span class="test-result">${item.testResult || '-'}</span></div>
-    <div class="col status"><span class="${isFail ? 'fail' : 'pass'}">
-        ${isFail ? '❌' : '✅'}
-    </span></div>
-</div>`;
+    <div class="col status">
+        <span class="${isFail ? 'fail' : 'pass'}">
+            ${isFail ? '❌' : '✅'}
+        </span>
+    </div>
+</div>
+`;
+
                         itemsDiv.appendChild(span);
                     });
 

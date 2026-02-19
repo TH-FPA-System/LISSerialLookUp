@@ -481,3 +481,25 @@ tr:hover {
     }
 
 
+.test-row .col.part a {
+    color: var(--text-dark); /* main text color instead of blue */
+    text-decoration: none; /* remove underline */
+    font-weight: bold; /* optional: make it stand out */
+    transition: color 0.2s;
+}
+
+    .test-row .col.part a:hover {
+        color: var(--accent); /* highlight on hover */
+        text-decoration: underline; /* subtle hover effect */
+    }
+.task-link {
+    color: var(--text-dark); /* matches main text */
+    text-decoration: none; /* remove underline */
+    font-weight: bold; /* highlight task */
+    transition: color 0.2s;
+}
+
+    .task-link:hover {
+        color: var(--accent); /* accent color on hover */
+        text-decoration: underline;
+    }
