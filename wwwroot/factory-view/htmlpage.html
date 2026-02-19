@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Factory Line Tracking</title>
+
+    <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
+
+    <style>
+        body {
+            font-family: "Segoe UI", Arial;
+            background: #f4f6f9;
+            padding: 20px;
+        }
+
+        h2 {
+            margin-bottom: 12px;
+        }
+
+        #cy {
+            height: 820px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        }
+
+        /* Pulse for active node */
+        .active {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(52,152,219,.6);
+            }
+
+            70% {
+                box-shadow: 0 0 0 14px rgba(52,152,219,0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(52,152,219,0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>🏭 DISHDRAWER – Production Flow</h2>
+    <div id="cy"></div>
+
+    <script>
+        /* ================================
+           1. LAYOUT CONFIG (FROM DB)
+           LISLineInfo
+        ================================ */
+        const layoutConfig = [
+            { store: "DDBRTH",  x: 10,  y: -20, label: "Birth" },
+            { store: "DDBRTH2", x: 10,  y:  0, label: "Birth 2" },
+            { store: "DDTRIM",  x: 30,  y: -20, label: "Trim" },
+            { store: "DDTRIM2", x: 30,  y: 0, label: "Trim 2" },
+            { store: "DDAT01",  x: 50,  y: 90, label: "Work Cell 1" },
+            { store: "DDAT02",  x: 50,  y: 80, label: "Work Cell 2" },
+            { store: "DDAT03",  x: 70, y: 90, label: "Work Cell 3" },
+            { store: "DDAT04",  x: 70, y: 80, label: "Work Cell 4" },
+            { store: "DDAT05",  x: 90, y: 90, label: "Work Cell 5" },
+            { store: "DDAT06",  x: 90, y: 80, label: "Work Cell 6" },
+            { store: "DDAT07",  x: 110, y: 90, label: "Work Cell 7" },
+            { store: "DDAT08",  x: 110, y: 80, label: "Work Cell 8" },
+            { store: "RIGTST01", x: 55, y: 55, label: "Rig Check 1" },
+            { store: "RIGTST02", x: 75, y: 55, label: "Rig Check 2" },
+            { store: "DDPT01",   x: 100, y: -20, label: "Packing 1" },
+            { store: "DDPT02",   x: 80, y: -20, label: "Packing 2" },
+            { store: "DDPT03",   x: 60, y: -20, label: "Packing 3" },
+            { store: "DDPT04", x: 100, y: 5, label: "Packing 4" },
+            { store: "DDPT05", x: 80, y: 5, label: "Packing 5" },
+            { store: "DDPT06", x: 60, y: 5, label: "Packing 6" },
+            { store: "DDACC",    x: 130, y: -20, label: "Pick Acc 1" },
+            { store: "RWDD2", x: 130, y: 5, label: "Pick Acc 2" },
+            { store: "DDROUTER", x: 160, y: 45, label: "Router" }
+        ];
+
+        /* ================================
+           2. TRACKING STATUS (FROM API)
+        ================================ */
+        const trackingStatus = {
+            DDBRTH: "P",
+            DDTRIM: "P",
+            DDAT02: "P",
+            RWDD1: "P",
+            DDPT02: "P",
+            DDROUTER: "R"   // current problem
+        };
+
+        const statusColor = {
+            P: "#2ecc71",
+            R: "#e74c3c",
+            D: "#f1c40f"
+        };
+
+        /* ================================
+           3. INIT CYTOSCAPE
+        ================================ */
+        const cy = cytoscape({
+            container: document.getElementById("cy"),
+            layout: { name: "preset" },
+            style: [
+                {
+                    selector: "node",
+                    style: {
+                        "label": "data(label)",
+                        "background-color": "data(color)",
+                        "shape": "round-rectangle",
+                        "width": 160,
+                        "height": 46,
+                        "font-size": 12,
+                        "text-valign": "center"
+                    }
+                },
+                {
+                    selector: "edge",
+                    style: {
+                        "curve-style": "bezier",
+                        "target-arrow-shape": "triangle",
+                        "width": 2,
+                        "line-color": "#b0b8c2",
+                        "target-arrow-color": "#b0b8c2"
+                    }
+                }
+            ]
+        });
+
+        /* ================================
+           4. ADD NODES (DB → PIXELS)
+        ================================ */
+        layoutConfig.forEach(cfg => {
+            const status = trackingStatus[cfg.store] || "D";
+
+            cy.add({
+                data: {
+                    id: cfg.store,
+                    label: `${cfg.label}`,
+                    color: statusColor[status]
+                },
+                position: {
+                    x: cfg.x * 10,
+                    y: (100 - cfg.y) * 6
+                }
+            });
+        });
+
+        /* ================================
+           5. ADD EDGES (SEQ ORDER)
+        ================================ */
+        for (let i = 0; i < layoutConfig.length - 1; i++) {
+            cy.add({
+                data: {
+                    source: layoutConfig[i].store,
+                    target: layoutConfig[i + 1].store
+                }
+            });
+        }
+
+        /* ================================
+           6. ACTIVE NODE
+        ================================ */
+        cy.getElementById("DDROUTER").addClass("active");
+        cy.nodes().lock();
+    </script>
+
+</body>
+</html>

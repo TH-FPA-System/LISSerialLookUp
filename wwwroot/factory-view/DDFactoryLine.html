@@ -1,0 +1,170 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dishdrawer Production Flow</title>
+    <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
+    <style>
+        body {
+            font-family: "Segoe UI", Arial;
+            background: #f4f6f9;
+            padding: 20px;
+        }
+
+        h2 {
+            margin-bottom: 12px;
+        }
+
+        #cy {
+            height: 820px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        }
+
+        .active {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(52,152,219,0.6);
+            }
+
+            70% {
+                box-shadow: 0 0 0 14px rgba(52,152,219,0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(52,152,219,0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h2>🏭 DISHDRAWER – Production Flow</h2>
+    <div id="cy"></div>
+
+    <script>
+        // ================================
+        // 1. Fetch node layout from API safely
+        // ================================
+        async function loadLineLayout(line = "DISHDRAWER") {
+            try {
+                const response = await fetch(`/api/FactoryLine/${line}`);
+                if (!response.ok) {
+                    alert("Failed to load layout from API");
+                    return [];
+                }
+
+                const data = await response.json();
+
+                if (!data?.nodes || !Array.isArray(data.nodes)) {
+                    console.error("Invalid API response:", data);
+                    return [];
+                }
+
+                // Map nodes
+                return data.nodes.map(n => ({
+                    store: n?.store || "unknown",
+                    x: n?.positionX ?? 0,
+                    y: n?.positionY ?? 0,
+                    label: n?.label || "Unknown"
+                }));
+
+            } catch (err) {
+                console.error("Error fetching layout:", err);
+                return [];
+            }
+        }
+
+        // ================================
+        // 2. Example tracking status (can be replaced with API later)
+        // ================================
+        const trackingStatus = {
+            "DDBRTH": "P",
+            "DDTRIM": "P",
+            "DDAT02": "P",
+            "RWDD2": "P",
+            "DDROUTER": "R"
+        };
+
+        const statusColor = {
+            P: "#2ecc71", // green
+            R: "#e74c3c", // red
+            D: "#f1c40f"  // yellow
+        };
+
+        // ================================
+        // 3. Initialize Cytoscape safely
+        // ================================
+        (async () => {
+            const layoutConfig = await loadLineLayout("DISHDRAWER");
+
+            if (!layoutConfig.length) {
+                alert("No nodes found for this line.");
+                return;
+            }
+
+            const cy = cytoscape({
+                container: document.getElementById("cy"),
+                layout: { name: "preset" },
+                style: [
+                    {
+                        selector: "node",
+                        style: {
+                            "label": "data(label)",
+                            "background-color": "data(color)",
+                            "shape": "round-rectangle",
+                            "width": 160,
+                            "height": 46,
+                            "font-size": 12,
+                            "text-valign": "center"
+                        }
+                    },
+                    {
+                        selector: "edge",
+                        style: {
+                            "curve-style": "bezier",
+                            "target-arrow-shape": "triangle",
+                            "width": 2,
+                            "line-color": "#b0b8c2",
+                            "target-arrow-color": "#b0b8c2"
+                        }
+                    }
+                ]
+            });
+
+            // ================================
+            // 4. Add nodes with colors
+            // ================================
+            layoutConfig.forEach(cfg => {
+                if (!cfg) return; // skip undefined
+                const status = trackingStatus[cfg.store] || "D";
+                cy.add({
+                    data: { id: cfg.store, label: cfg.label, color: statusColor[status] },
+                    position: { x: cfg.x * 10, y: (100 - cfg.y) * 6 }
+                });
+            });
+
+            // ================================
+            // 5. Add edges sequentially
+            // ================================
+            for (let i = 0; i < layoutConfig.length - 1; i++) {
+                const source = layoutConfig[i]?.store;
+                const target = layoutConfig[i + 1]?.store;
+                if (!source || !target) continue; // skip if undefined
+                cy.add({ data: { source, target } });
+            }
+
+            // ================================
+            // 6. Highlight last node as active
+            // ================================
+            const lastNodeId = layoutConfig[layoutConfig.length - 1]?.store;
+            if (lastNodeId) cy.getElementById(lastNodeId).addClass("active");
+
+            cy.nodes().lock();
+        })();
+    </script>
+</body>
+</html>
