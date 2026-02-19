@@ -78,6 +78,7 @@ async function loadData() {
                 if (!grouped[t.task]) grouped[t.task] = {};
                 if (!grouped[t.task][t.run]) grouped[t.task][t.run] = [];
                 grouped[t.task][t.run].push(t);
+                
             });
 
             Object.keys(grouped).forEach((taskId) => {
@@ -95,13 +96,14 @@ async function loadData() {
                 taskHeader.className = 'task-header';
                 const startDate = formatDateYYYYMMDD(yesterday); // calculate yesterday
                 const endDate = formatDateYYYYMMDD(tomorrow);   // calculate tomorrow
-
+                const taskDescription = latestRunItems[0].taskDescription || '';
+                // Then build header
                 taskHeader.innerHTML = `
 <a href="http://tiger/QA_LISSummary/ResultPartTest?startDate=${startDate}&endDate=${endDate}&TaskNo=${taskId}" 
    target="_blank" class="task-link">
-   TASK ${taskId}
+   TASK ${taskId} ${taskDescription}
 </a>
-<span>Latest: <span class="${latestResultClass}">${latestPass ? 'PASS' : 'FAIL'}</span></span>
+<span> • <span class="${latestResultClass}">&nbsp${latestPass ? 'PASS' : 'FAIL'}</span></span>
 `;
 
                 taskDiv.appendChild(taskHeader);
@@ -134,7 +136,7 @@ async function loadData() {
                     if (runFail) runHeader.style.backgroundColor = '#ffe5e5'; // light red if any fail
 
                     const runDescription = runItems[0].taskDescription || '';
-                    runHeader.innerHTML = `Task: ${taskId} • Run: ${runNum} ${runDescription} • ${lastDateTested ? '🕒 ' + formatDate(lastDateTested) : ''} <span class="${runResultClass}">${runPass ? '✅' : '❌'}</span>`;
+                    runHeader.innerHTML = `Task ${taskId} • Run: ${runNum} • ${lastDateTested ? '🕒 ' + formatDate(lastDateTested) : ''} <span class="${runResultClass}">${runPass ? '✅' : '❌'}</span>`;
 
                     // Container for test items
                     const itemsDiv = document.createElement('div');
