@@ -70,7 +70,7 @@ async function loadData() {
         // ---------------- Testing table ----------------
         const testingContainer = document.getElementById("testing-container");
         testingContainer.innerHTML = ""; // clear previous
-
+        window.testingData = data.testing || [];
         if (data.testing && data.testing.length > 0) {
             // Group by task then run
             const grouped = {};
@@ -281,66 +281,111 @@ function convertStatusIcon(cellContent) {
     }
 
     // Export Testing Table to CSV
-    function exportTestingCSV() {
-        const table = document.getElementById("testing-table");
+function exportTestingCSV() {
+    const serial = document.getElementById("serialFPA").textContent.trim() || "-";
     const partFull = document.getElementById("part").textContent.trim() || "-";
     const part = partFull.split(' ')[0];
-    const serial = document.getElementById("serialFPA").textContent.trim() || "-";
 
-    let csv = [];
-    csv.push(testingHeaders.join(",")); // header
+    if (!window.testingData || !window.testingData.length) {
+        alert("No testing data loaded for export.");
+        return;
+    }
 
-        for (let row of table.tBodies[0].rows) {
-            if (row.classList.contains("group-run-header")) continue;
+    const csv = [];
+    csv.push(testingHeaders.join(",")); // add header row
 
-            let rowData = [part, serial];
-            for (let cell of row.cells) {
-                let text = convertStatusIcon(cell.textContent.trim()).replace(/,/g, "");
-                if (!text) text = "-";
-                rowData.push(text);
-            }
-            csv.push(rowData.join(","));
-        }
+    // group by task & run
+    const grouped = {};
+    window.testingData.forEach(t => {
+        if (!grouped[t.task]) grouped[t.task] = {};
+        if (!grouped[t.task][t.run]) grouped[t.task][t.run] = [];
+        grouped[t.task][t.run].push(t);
+    });
 
+    Object.keys(grouped).forEach(taskId => {
+        const runs = Object.keys(grouped[taskId]).sort((a, b) => a - b);
+        runs.forEach(runNum => {
+            grouped[taskId][runNum].forEach(item => {
+                const partLink = `http://tiger/LIS_ITEM/ItemCheck/GETPTBYCATASK?Part=&taskChk=&partNo=${item.testPart}`;
+                const taskLink = `http://tiger/QA_LISSummary/ResultPartTest?startDate=2026-02-18&endDate=2026-02-20&TaskNo=${taskId}`;
 
-    const blob = new Blob([csv.join("\n")], {type: "text/csv" });
+                const rowData = [
+                    `=HYPERLINK("${partLink}", "${item.testPart || "-"}")`,
+                    serial,
+                    `=HYPERLINK("${taskLink}", "${taskId}")`,
+                    runNum,
+                    item.testPart || "-",
+                    item.description || "-",
+                    item.testResult || "-",
+                    "-", // Test Fault
+                    item.testStatus === "F" ? "F" : "P",
+                    item.dateTested ? formatDate(new Date(item.dateTested)) : "-"
+                ];
+
+                csv.push(rowData.join(","));
+            });
+        });
+    });
+
+    const blob = new Blob([csv.join("\n")], { type: "text/csv" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = `${getExportFilename()}.csv`;
     link.click();
-    }
+}
 
     // Export Testing Table to Excel
-    function exportTestingExcel() {
-        const table = document.getElementById("testing-table");
+function exportTestingExcel() {
+    const serial = document.getElementById("serialFPA").textContent.trim() || "-";
     const partFull = document.getElementById("part").textContent.trim() || "-";
     const part = partFull.split(' ')[0];
-    const serial = document.getElementById("serialFPA").textContent.trim() || "-";
 
-    let excelData = [];
-    excelData.push(testingHeaders); // header
+    if (!window.testingData || !window.testingData.length) {
+        alert("No testing data loaded for export.");
+        return;
+    }
 
-        for (let row of table.tBodies[0].rows) {
-            if (row.classList.contains("group-run-header")) continue;
+    const excelData = [];
+    excelData.push(testingHeaders); // header row
 
-            let rowData = [part, serial];
+    // group by task & run
+    const grouped = {};
+    window.testingData.forEach(t => {
+        if (!grouped[t.task]) grouped[t.task] = {};
+        if (!grouped[t.task][t.run]) grouped[t.task][t.run] = [];
+        grouped[t.task][t.run].push(t);
+    });
 
-            for (let cell of row.cells) {
-                let text = convertStatusIcon(cell.textContent.trim());
-                if (!text) text = "-";
-                rowData.push(text);
-            }
+    Object.keys(grouped).forEach(taskId => {
+        const runs = Object.keys(grouped[taskId]).sort((a, b) => a - b);
+        runs.forEach(runNum => {
+            grouped[taskId][runNum].forEach(item => {
+                const partLink = `http://tiger/LIS_ITEM/ItemCheck/GETPTBYCATASK?Part=&taskChk=&partNo=${item.testPart}`;
+                const taskLink = `http://tiger/QA_LISSummary/ResultPartTest?startDate=2026-02-18&endDate=2026-02-20&TaskNo=${taskId}`;
 
-            excelData.push(rowData);
-        }
+                const rowData = [
+                    { v: item.testPart || "-", l: { Target: partLink, Tooltip: "Click to open Part" } },
+                    serial,
+                    { v: taskId, l: { Target: taskLink, Tooltip: "Click to open Task" } },
+                    runNum,
+                    item.testPart || "-",
+                    item.description || "-",
+                    item.testResult || "-",
+                    "-", // Test Fault
+                    item.testStatus === "F" ? "F" : "P",
+                    item.dateTested ? formatDate(new Date(item.dateTested)) : "-"
+                ];
 
+                excelData.push(rowData);
+            });
+        });
+    });
 
-    // Force XLSX export only
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(excelData);
     XLSX.utils.book_append_sheet(wb, ws, "Testing");
     XLSX.writeFile(wb, `${getExportFilename()}.xlsx`);
-    }
+}
 
 
 document.addEventListener("DOMContentLoaded", () => {
