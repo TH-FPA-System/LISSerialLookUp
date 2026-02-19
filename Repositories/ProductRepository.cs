@@ -257,7 +257,7 @@ LEFT JOIN Thailis.dbo.task tkd
     ON tkd.task = tr.task
 WHERE ha.serial_HAIER = @serial
 
-ORDER BY DateTested;
+ORDER BY Description,DateTested;
 ";
 
 

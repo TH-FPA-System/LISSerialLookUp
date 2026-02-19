@@ -10,46 +10,44 @@
     return `${d}/${m}/${y} : ${h}:${min}:${s}`;
     }
 
-    async function loadData() {
-        const serial = document.getElementById("serialInput").value.trim();
-    if (!serial) {alert("Please enter a serial number."); return; }
+async function loadData() {
+    const serial = document.getElementById("serialInput").value.trim();
+    if (!serial) { alert("Please enter a serial number."); return; }
 
     const overlay = document.getElementById("loading");
     overlay.style.display = "flex";
 
     try {
-            const response = await fetch(`./api/Product/${serial}`);
-    overlay.style.display = "none";
-    if (!response.ok) {alert("Product not found."); return; }
+        const response = await fetch(`./api/Product/${serial}`);
+        overlay.style.display = "none";
+        if (!response.ok) { alert("Product not found."); return; }
 
-    const data = await response.json();
+        const data = await response.json();
 
-    // ---------------- Product Details ----------------
-    const pd = data.productDetails || { };
-    document.getElementById("serialFPA").textContent = pd.serialFPA || "-";
-    document.getElementById("serialGEA").textContent = pd.serialGEA || "-";
-    document.getElementById("serialHAIER").textContent = pd.serialHAIER || "-";
-    document.getElementById("part").textContent = pd.part || "-";
-    document.getElementById("partIssue").textContent = pd.partIssue || "-";
-    document.getElementById("serialIssueDate").textContent = pd.serialIssueDate ? formatDate(new Date(pd.serialIssueDate)) : "-";
-    document.getElementById("vaI_FoamCode").textContent = pd.vaI_FoamCode || "-";
+        // ---------------- Product Details ----------------
+        const pd = data.productDetails || {};
+        document.getElementById("serialFPA").textContent = pd.serialFPA || "-";
+        document.getElementById("serialGEA").textContent = pd.serialGEA || "-";
+        document.getElementById("serialHAIER").textContent = pd.serialHAIER || "-";
+        document.getElementById("part").textContent = pd.part || "-";
+        document.getElementById("partIssue").textContent = pd.partIssue || "-";
+        document.getElementById("serialIssueDate").textContent = pd.serialIssueDate ? formatDate(new Date(pd.serialIssueDate)) : "-";
+        document.getElementById("vaI_FoamCode").textContent = pd.vaI_FoamCode || "-";
+        const statusEl = document.getElementById("status");
+        statusEl.textContent = pd.status || "-";
+        statusEl.classList.remove("status-P", "status-R", "status-D", "status-N");
+        if (pd.status) statusEl.classList.add(`status-${pd.status}`);
 
-    const statusEl = document.getElementById("status");
-    statusEl.textContent = pd.status || "-";
-    statusEl.classList.remove("status-P", "status-R", "status-D", "status-N");
-    if (pd.status) statusEl.classList.add(`status-${pd.status}`);
+        // ---------------- Clear old tables ----------------
+        ["#tracking-table tbody", "#rework-table tbody"].forEach(sel => {
+            document.querySelector(sel).innerHTML = "";
+        });
 
-
-            // ---------------- Clear old tables ----------------
-            ["#tracking-table tbody", "#testing-table tbody", "#rework-table tbody"].forEach(sel => {
-        document.querySelector(sel).innerHTML = "";
-            });
-
-            // ---------------- Tracking table ----------------
-            if (data.tracking && data.tracking.length > 0) {
-        data.tracking.forEach(t => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
+        // ---------------- Tracking table ----------------
+        if (data.tracking && data.tracking.length > 0) {
+            data.tracking.forEach(t => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
                     <td>${t.workcell}</td>
                     <td>${t.task}</td>
                     <td>${t.store_location}</td>
@@ -61,178 +59,138 @@
                     <td>${t.order_no || '-'}</td>
                     <td>${t.reject_reason || '-'}</td>
                 `;
+                document.querySelector("#tracking-table tbody").appendChild(tr);
+            });
+        } else {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td colspan="11" style="text-align:center;">No tracking data found</td>`;
             document.querySelector("#tracking-table tbody").appendChild(tr);
-        });
-            } else {
-                const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="11" style="text-align:center;">No tracking data found</td>`;
-    document.querySelector("#tracking-table tbody").appendChild(tr);
-            }
+        }
 
-    // ---------------- Testing table ----------------
-    // Grouping and rendering testing table
+        // ---------------- Testing table ----------------
+        const testingContainer = document.getElementById("testing-container");
+        testingContainer.innerHTML = ""; // clear previous
 
-    // Toggle test group rows
-    function attachTestingToggle() {
-                const tbody = document.querySelector("#testing-table tbody");
-                tbody.querySelectorAll(".group-run-header").forEach(header => {
-        header.addEventListener("click", () => {
-            const icon = header.querySelector(".icon");
-            if (icon) icon.classList.toggle("rotate");
-            let next = header.nextElementSibling;
-            while (next && next.classList.contains("group-row")) {
-                next.style.display = (next.style.display === "none") ? "table-row" : "none";
-                next = next.nextElementSibling;
-            }
-        });
-                });
-            }
-
-
-    const grouped = { };
+        if (data.testing && data.testing.length > 0) {
+            // Group by task then run
+            const grouped = {};
             data.testing.forEach(t => {
-                // Create task object if it doesn't exist
-                if (!grouped[t.task]) grouped[t.task] = {
-        description: t.taskDescription || '', // store task description here
-    runs: { }
-                };
-
-    // Create run array if it doesn't exist
-    if (!grouped[t.task].runs[t.run]) grouped[t.task].runs[t.run] = [];
-
-    // Push test row into run array
-    grouped[t.task].runs[t.run].push(t);
+                if (!grouped[t.task]) grouped[t.task] = {};
+                if (!grouped[t.task][t.run]) grouped[t.task][t.run] = [];
+                grouped[t.task][t.run].push(t);
             });
 
-    const tbody = document.querySelector("#testing-table tbody");
-            Object.keys(grouped).forEach(task => {
-                const runs = grouped[task].runs; // <-- access runs properly
-                const runKeys = Object.keys(runs).sort((a, b) => a - b);
-    const lastRunKey = runKeys[runKeys.length - 1];
-    const lastRunRows = runs[lastRunKey];
+            Object.keys(grouped).forEach((taskId, taskIndex) => {
+                const taskDiv = document.createElement('div');
+                taskDiv.className = 'task';
 
-                // Keep lastRunHasFail based on taskStatus
-                const lastRunHasFail = lastRunRows.some(t => t.taskStatus === "F");
+                const runs = Object.keys(grouped[taskId]).sort((a, b) => a - b);
+                const latestRunItems = grouped[taskId][runs[runs.length - 1]];
+                const latestPass = latestRunItems.every(i => i.testStatus !== "F");
+                const latestResultClass = latestPass ? 'pass' : 'fail';
 
-                Object.keys(runs).forEach(run => {
-                    const runRows = runs[run];
-                    const hasFail = runRows.some(t => t.testStatus === "F");
-                    let runIcon = hasFail ? '❌' : '✅';
+                // Task header
+                const taskHeader = document.createElement('div');
+                taskHeader.className = 'task-header';
+                taskHeader.innerHTML = `<span>${taskIndex + 1}. TASK ${taskId}</span>
+                                <span>Latest: <span class="${latestResultClass}">${latestPass ? 'PASS' : 'FAIL'}</span></span>`;
+                taskDiv.appendChild(taskHeader);
 
-                    if (lastRunHasFail) {
-                        runIcon = '❌';
-                    }
+                // Runs container (hidden by default)
+                const runsContainer = document.createElement('div');
+                runsContainer.style.display = 'none';
+                runsContainer.className = 'runs-container';
 
-    // COMPUTE taskLink
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
+                runs.forEach((runNum, runIndex) => {
+                    const runDiv = document.createElement('div');
+                    runDiv.className = 'run';
 
-                    const formatDateYYYYMMDD = dt =>
-    `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+                    const runItems = grouped[taskId][runNum];
+                    const runPass = runItems.every(i => i.testStatus !== "F");
+                    const runResultClass = runPass ? 'pass' : 'fail';
 
-    const taskLink =
-    `http://tiger/QA_LISSummary/ResultPartTest?startDate=${formatDateYYYYMMDD(yesterday)}&endDate=${formatDateYYYYMMDD(tomorrow)}&TaskNo=${task}&PartTestsNo=`;
+                    // Run header
+                    const runHeader = document.createElement('div');
+                    runHeader.className = 'run-header';
+                    runHeader.innerHTML = `<span>${taskIndex + 1}. Run ${runNum}</span>
+                                   <span class="${runResultClass}">${runPass ? 'PASS' : 'FAIL'}</span>`;
+                    runDiv.appendChild(runHeader);
 
-    // CREATE run header row
-    const runRow = document.createElement("tr");
-    runRow.classList.add("group-run-header");
-    const taskDescription = grouped[task].description; // get description for this task
+                    // Test items under this run
+                    const itemsDiv = document.createElement('div');
+                    itemsDiv.className = 'test-items';
+                    itemsDiv.style.display = 'block'; // initially visible when task is expanded
 
-    // Get the last dateTested in this run
-    const lastDateTested = runRows
-                        .map(r => r.dateTested)
-                        .filter(d => d) // remove null/undefined
-                        .map(d => new Date(d))
-                        .sort((a, b) => b - a)[0]; // descending, take first = latest
-
-    runRow.innerHTML = `
-    <td colspan="8">
-        <span class="status-icon">${runIcon}</span>
-        Task: ${task} <span class="sep">❘</span> Run: ${run}
-        <a href="${taskLink}" target="_blank" class="link-btn" title="View Task Results">
-            ${taskDescription}
-        </a>
-        ${lastDateTested
-            ? ` <span class="sep">❘</span> <span class="last-tested" title="Last Tested">🕒 ${formatDate(lastDateTested)}</span>`
-            : ''}
-    </td>
-    `;
-
-
-    runRow.style.fontWeight = "bold";
-    runRow.style.cursor = "pointer";
-    tbody.appendChild(runRow);
-
-
-                    runRows.forEach(t => {
-                        const tr = document.createElement("tr");
-    tr.classList.add("group-row");
-    tr.style.display = "none"; // hide by default
-
-    const testTaskLink = `http://tiger/LIS_ITEM/ItemCheck/GETPTBYCATASK?Part=&taskChk=&partNo=${t.testPart}`;
-
-    tr.innerHTML = `
-    <td>${t.task}</td>
-    <td>${t.run}</td>
-    <td>
-        <a href="${testTaskLink}" target="_blank" class="link-btn" title="Check Limits">
-            ${t.testPart}
-        </a>
-    </td>
-    <td>${t.description || '-'}</td>
-    <td>${t.testResult || '-'}</td>
-    <td>${t.testFault || '-'}</td>
-    <td class="status-icon">${t.testStatus === "F" ? '❌' : '✅'}</td>
-    <td>${t.dateTested ? formatDate(new Date(t.dateTested)) : '-'}</td>
-    `;
-    tbody.appendChild(tr);
+                    runItems.forEach((item, itemIndex) => {
+                        const span = document.createElement('div');
+                        span.innerHTML = `${taskIndex + 1}.${runNum}.${itemIndex + 1} ${item.testPart} &nbsp;&nbsp; ${item.description || '-'} , <span class="${item.testStatus === 'F' ? 'fail' : 'pass'}">${item.testStatus === 'F' ? 'FAIL' : 'PASS'}</span>`;
+                        itemsDiv.appendChild(span);
                     });
 
+                    // Run click: toggle only its test items
+                    runHeader.addEventListener('click', () => {
+                        const isOpen = itemsDiv.style.display === 'block';
+                        itemsDiv.style.display = isOpen ? 'none' : 'block';
+                        runHeader.classList.toggle('active', !isOpen);
+                    });
+
+                    runDiv.appendChild(itemsDiv);
+                    runsContainer.appendChild(runDiv);
                 });
+
+                // Task click: toggle all runs container
+                taskHeader.addEventListener('click', () => {
+                    const isOpen = runsContainer.style.display === 'block';
+                    runsContainer.style.display = isOpen ? 'none' : 'block';
+                    taskHeader.classList.toggle('active', !isOpen);
+
+                    // When hiding task, collapse all runs too
+                    if (isOpen) {
+                        runsContainer.querySelectorAll('.test-items').forEach(div => div.style.display = 'none');
+                        runsContainer.querySelectorAll('.run-header').forEach(rh => rh.classList.remove('active'));
+                    } else {
+                        runsContainer.querySelectorAll('.test-items').forEach(div => div.style.display = 'block');
+                    }
+                });
+
+                taskDiv.appendChild(runsContainer);
+                testingContainer.appendChild(taskDiv);
             });
 
+        } else {
+            testingContainer.innerHTML = "<div style='text-align:center;'>No testing data found</div>";
+        }
 
-            // Attach toggle for group rows
-            tbody.querySelectorAll(".group-run-header").forEach(header => {
-        header.addEventListener("click", () => {
-            let next = header.nextElementSibling;
-            while (next && next.classList.contains("group-row")) {
-                next.style.display = (next.style.display === "none") ? "table-row" : "none";
-                next = next.nextElementSibling;
-            }
-        });
-            });
 
-            // ---------------- Rework table ----------------
-            if (data.reworkRecords && data.reworkRecords.length > 0) {
-        data.reworkRecords.forEach(r => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
+
+
+        // ---------------- Rework table ----------------
+        if (data.reworkRecords && data.reworkRecords.length > 0) {
+            data.reworkRecords.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
                     <td>${r.part}</td>
-                    <td>${r.dateRecorded ? formatDate(new Date(r.dateRecorded)) : "-"}</td>
+                    <td>${r.dateRecorded ? formatDate(new Date(r.dateRecorded)) : '-'}</td>
                     <td>${r.areaRecorded}</td>
                     <td>${r.rwkRepairCode}</td>
                     <td>${r.rwkFaultCode}</td>
                     <td>${r.mold}</td>
                 `;
-            document.querySelector("#rework-table tbody").appendChild(tr);
-        });
-            } else {
-                const tbody = document.querySelector("#rework-table tbody");
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="6" style="text-align:center;">No rework records found</td>`;
-    tbody.appendChild(tr);
-            }
-
-        } catch (err) {
-        overlay.style.display = "none";
-    console.error(err);
-    alert("Failed to load product data.");
+                document.querySelector("#rework-table tbody").appendChild(tr);
+            });
+        } else {
+            const tbody = document.querySelector("#rework-table tbody");
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td colspan="6" style="text-align:center;">No rework records found</td>`;
+            tbody.appendChild(tr);
         }
+
+    } catch (err) {
+        overlay.style.display = "none";
+        console.error(err);
+        alert("Failed to load product data.");
     }
+}
 
 
     // Calculate dates
@@ -378,6 +336,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 });
+
+
+
 
 
 

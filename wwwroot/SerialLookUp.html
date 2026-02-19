@@ -66,7 +66,7 @@
                                 <th>Store Location</th>
                                 <th>Status</th>
                                 <!--<th>Grade</th>
-                    <th>Zone</th>-->
+                            <th>Zone</th>-->
                                 <th>Store</th>
                                 <th>Last Maint</th>
                                 <th>Last Maint Logon</th>
@@ -82,33 +82,18 @@
         </div>
 
         <!-- Testing Information -->
-        <button class="collapsible">  <span class="arrow">▼</span> Testing Information</button>
+        <button class="collapsible">
+            <span class="arrow">▼</span> Testing Information
+        </button>
         <div class="content" id="testing-content">
             <div style="margin-bottom: 2px;">
-                <!-- Export buttons as icons with text -->
-                <!--<button onclick="exportTestingCSV()" title="Export CSV" style="font-size:16px; margin-right:5px; background: none; border: none; cursor: pointer; color: #333; display: flex; align-items: center;">
-                    📄 <span style="margin-left: 5px;">Export CSV</span>
-                </button>-->
                 <button onclick="exportTestingExcel()" title="Export Excel" style="font-size:16px; background: none; border: none; cursor: pointer; color: #333; display: flex; align-items: center;">
                     📊 <span style="margin-left: 2px;">Export Excel</span>
                 </button>
             </div>
-            <table id="testing-table">
-                <thead>
-                    <tr>
-                        <th>Task</th>
-                        <th>Run</th>
-                        <th>Test Part</th>
-                        <th>Description</th>
-                        <th>Test Result</th>
-                        <th>Test Fault</th>
-                        <th>Status</th>
-                        <th>Date Tested</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
 
+            <!-- New container for grouped test results -->
+            <div id="testing-container"></div>
         </div>
 
 

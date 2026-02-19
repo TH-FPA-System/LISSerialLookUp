@@ -298,3 +298,95 @@ tr:hover {
         border: 1px solid #e1e4e8;
         text-align: left;
     }
+/*    NEW*/
+/* General task styles */
+.task {
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 6px 10px;
+    background: #f9f9f9;
+    text-align: left; /* align all text left */
+}
+
+/* Task header with arrow */
+.task-header {
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: flex-start; /* left align */
+    align-items: center;
+    padding: 4px 0;
+    gap: 10px; /* space between arrow and text */
+}
+
+    /* Arrow for task */
+    .task-header::before {
+        content: "▶";
+        display: inline-block;
+        transition: transform 0.2s ease;
+    }
+
+    /* Rotate arrow when expanded */
+    .task-header.active::before {
+        transform: rotate(90deg);
+    }
+
+/* Runs container (hidden by default) */
+.runs-container {
+    margin-left: 20px;
+    margin-top: 4px;
+    text-align: left; /* left align all runs */
+}
+
+/* Run header with arrow */
+.run-header {
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    justify-content: flex-start; /* left align */
+    align-items: center;
+    padding: 2px 0;
+    gap: 10px; /* space between arrow and text */
+}
+
+    /* Arrow for run */
+    .run-header::before {
+        content: "▶";
+        display: inline-block;
+        transition: transform 0.2s ease;
+    }
+
+    /* Rotate run arrow when expanded */
+    .run-header.active::before {
+        transform: rotate(90deg);
+    }
+
+/* Test items under each run */
+.test-items {
+    margin-left: 20px;
+    padding: 2px 0;
+    text-align: left; /* left align test items */
+}
+
+/* Pass / Fail coloring */
+.pass {
+    color: green;
+    font-weight: bold;
+}
+
+.fail {
+    color: red;
+    font-weight: bold;
+}
+
+/* Hover effect for headers */
+.task-header:hover, .run-header:hover {
+    background: #e2f0ff;
+    border-radius: 4px;
+}
+
+/* Small spacing for each test item */
+.test-items div {
+    padding: 2px 0;
+}
