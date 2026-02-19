@@ -80,28 +80,30 @@ async function loadData() {
                 grouped[t.task][t.run].push(t);
             });
 
-            Object.keys(grouped).forEach((taskId, taskIndex) => {
+            Object.keys(grouped).forEach((taskId) => {
                 const taskDiv = document.createElement('div');
                 taskDiv.className = 'task';
 
+                // Latest run result for task
                 const runs = Object.keys(grouped[taskId]).sort((a, b) => a - b);
                 const latestRunItems = grouped[taskId][runs[runs.length - 1]];
                 const latestPass = latestRunItems.every(i => i.testStatus !== "F");
                 const latestResultClass = latestPass ? 'pass' : 'fail';
 
-                // Task header
+                // TASK header only (default visible)
                 const taskHeader = document.createElement('div');
                 taskHeader.className = 'task-header';
-                taskHeader.innerHTML = `<span>${taskIndex + 1}. TASK ${taskId}</span>
+                taskHeader.innerHTML = `<span>TASK ${taskId}</span>
                                 <span>Latest: <span class="${latestResultClass}">${latestPass ? 'PASS' : 'FAIL'}</span></span>`;
                 taskDiv.appendChild(taskHeader);
 
-                // Runs container (hidden by default)
+                // Container for all runs (hidden by default)
                 const runsContainer = document.createElement('div');
-                runsContainer.style.display = 'none';
                 runsContainer.className = 'runs-container';
+                runsContainer.style.display = 'none';
 
-                runs.forEach((runNum, runIndex) => {
+                // Build all runs inside container
+                runs.forEach((runNum) => {
                     const runDiv = document.createElement('div');
                     runDiv.className = 'run';
 
@@ -109,48 +111,36 @@ async function loadData() {
                     const runPass = runItems.every(i => i.testStatus !== "F");
                     const runResultClass = runPass ? 'pass' : 'fail';
 
-                    // Run header
                     const runHeader = document.createElement('div');
                     runHeader.className = 'run-header';
-                    runHeader.innerHTML = `<span>${taskIndex + 1}. Run ${runNum}</span>
+                    runHeader.innerHTML = `<span>Run ${runNum}</span>
                                    <span class="${runResultClass}">${runPass ? 'PASS' : 'FAIL'}</span>`;
-                    runDiv.appendChild(runHeader);
 
-                    // Test items under this run
+                    // Container for test items (hidden initially)
                     const itemsDiv = document.createElement('div');
                     itemsDiv.className = 'test-items';
-                    itemsDiv.style.display = 'block'; // initially visible when task is expanded
+                    itemsDiv.style.display = 'none';
 
-                    runItems.forEach((item, itemIndex) => {
+                    runItems.forEach((item) => {
                         const span = document.createElement('div');
-                        span.innerHTML = `${taskIndex + 1}.${runNum}.${itemIndex + 1} ${item.testPart} &nbsp;&nbsp; ${item.description || '-'} , <span class="${item.testStatus === 'F' ? 'fail' : 'pass'}">${item.testStatus === 'F' ? 'FAIL' : 'PASS'}</span>`;
+                        span.textContent = `${item.testPart}    ${item.description || '-'} , ${item.testStatus === "F" ? 'FAIL' : 'PASS'}`;
+                        span.className = item.testStatus === "F" ? 'fail' : 'pass';
                         itemsDiv.appendChild(span);
                     });
 
-                    // Run click: toggle only its test items
+                    // Click run header → toggle test items
                     runHeader.addEventListener('click', () => {
-                        const isOpen = itemsDiv.style.display === 'block';
-                        itemsDiv.style.display = isOpen ? 'none' : 'block';
-                        runHeader.classList.toggle('active', !isOpen);
+                        itemsDiv.style.display = itemsDiv.style.display === 'block' ? 'none' : 'block';
                     });
 
+                    runDiv.appendChild(runHeader);
                     runDiv.appendChild(itemsDiv);
                     runsContainer.appendChild(runDiv);
                 });
 
-                // Task click: toggle all runs container
+                // Click TASK header → toggle all runs
                 taskHeader.addEventListener('click', () => {
-                    const isOpen = runsContainer.style.display === 'block';
-                    runsContainer.style.display = isOpen ? 'none' : 'block';
-                    taskHeader.classList.toggle('active', !isOpen);
-
-                    // When hiding task, collapse all runs too
-                    if (isOpen) {
-                        runsContainer.querySelectorAll('.test-items').forEach(div => div.style.display = 'none');
-                        runsContainer.querySelectorAll('.run-header').forEach(rh => rh.classList.remove('active'));
-                    } else {
-                        runsContainer.querySelectorAll('.test-items').forEach(div => div.style.display = 'block');
-                    }
+                    runsContainer.style.display = runsContainer.style.display === 'block' ? 'none' : 'block';
                 });
 
                 taskDiv.appendChild(runsContainer);
@@ -160,9 +150,6 @@ async function loadData() {
         } else {
             testingContainer.innerHTML = "<div style='text-align:center;'>No testing data found</div>";
         }
-
-
-
 
         // ---------------- Rework table ----------------
         if (data.reworkRecords && data.reworkRecords.length > 0) {

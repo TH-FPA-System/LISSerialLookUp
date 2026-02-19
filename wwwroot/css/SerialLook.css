@@ -390,3 +390,58 @@ tr:hover {
 .test-items div {
     padding: 2px 0;
 }
+
+
+/*NEW2*/
+/* Main container for tasks */
+#testing-container {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: #333;
+    max-height: 70vh; /* optional: prevent overflow of page */
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.run {
+    margin-bottom: 2px;
+}
+
+
+/* Task header */
+.task-header {
+    background-color: #f0f0f0;
+    padding: 6px 12px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-bottom: 2px;
+}
+
+/* Run header */
+.run-header {
+    background-color: #fafafa;
+    padding: 4px 20px; /* indent under task */
+    font-weight: 500;
+    cursor: pointer;
+    border-left: 3px solid #ccc;
+    margin-bottom: 1px;
+}
+
+/* Individual test items */
+.test-items div {
+    padding: 2px 40px; /* more indentation under run */
+    font-weight: normal;
+    border-left: 2px dashed #ddd;
+}
+
+/* Status colors */
+.pass {
+    color: green;
+    font-weight: bold;
+}
+
+.fail {
+    color: red;
+    font-weight: bold;
+}
