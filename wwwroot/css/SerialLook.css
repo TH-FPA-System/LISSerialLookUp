@@ -445,3 +445,39 @@ tr:hover {
     color: red;
     font-weight: bold;
 }
+.row-fail {
+    background-color: #ffe5e5 !important; /* light red background for the whole row */
+    color: #c0392b !important; /* darker red text */
+}
+
+.test-result {
+    color: #2980b9; /* brighter, clear blue */
+    font-weight: bold;
+}
+.test-items .test-row {
+    display: grid;
+    grid-template-columns: 150px 1fr 850px 170px; /* part | description | result | status */
+    column-gap: 2px;
+    padding: 2px 0;
+    align-items: flex-start;
+    font-family: monospace; /* optional for nice numeric alignment */
+}
+.test-items .col.part,
+.test-items .col.description,
+.test-items .col.status {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.test-items .col {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+    .test-items .col.result {
+        text-align: left; /* center the test result */
+        color: #2980b9; /* bright blue for result */
+        font-weight: bold;
+    }
+
+

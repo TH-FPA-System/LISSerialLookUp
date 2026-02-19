@@ -108,27 +108,45 @@ async function loadData() {
                     runDiv.className = 'run';
 
                     const runItems = grouped[taskId][runNum];
-                    const runPass = runItems.every(i => i.testStatus !== "F");
+                    const runFail = runItems.some(i => i.testStatus === "F"); // check if any fail
+                    const runPass = !runFail;
                     const runResultClass = runPass ? 'pass' : 'fail';
 
+                    // Get the last tested date in this run
+                    const lastDateTested = runItems
+                        .map(r => r.dateTested)
+                        .filter(d => d)
+                        .map(d => new Date(d))
+                        .sort((a, b) => b - a)[0];
+
+                    // Run header with modern separator and status
                     const runHeader = document.createElement('div');
                     runHeader.className = 'run-header';
-                    runHeader.innerHTML = `<span>Run ${runNum}</span>
-                                   <span class="${runResultClass}">${runPass ? 'PASS' : 'FAIL'}</span>`;
+                    if (runFail) runHeader.style.backgroundColor = '#ffe5e5'; // light red if any fail
 
-                    // Container for test items (hidden initially)
+                    const runDescription = runItems[0].taskDescription || '';
+                    runHeader.innerHTML = `Task: ${taskId} • Run: ${runNum} ${runDescription} • ${lastDateTested ? '🕒 ' + formatDate(lastDateTested) : ''} <span class="${runResultClass}">${runPass ? '✅' : '❌'}</span>`;
+
+                    // Container for test items
                     const itemsDiv = document.createElement('div');
                     itemsDiv.className = 'test-items';
                     itemsDiv.style.display = 'none';
 
                     runItems.forEach((item) => {
+                        const isFail = item.testStatus === "F";
                         const span = document.createElement('div');
-                        span.textContent = `${item.testPart}    ${item.description || '-'} , ${item.testStatus === "F" ? 'FAIL' : 'PASS'}`;
-                        span.className = item.testStatus === "F" ? 'fail' : 'pass';
+                        span.innerHTML = `
+<div class="test-row ${isFail ? 'row-fail' : ''}">
+    <div class="col part">${item.testPart}</div>
+    <div class="col description">${item.description || '-'}</div>
+    <div class="col result"><span class="test-result">${item.testResult || '-'}</span></div>
+    <div class="col status"><span class="${isFail ? 'fail' : 'pass'}">
+        ${isFail ? '❌' : '✅'}
+    </span></div>
+</div>`;
                         itemsDiv.appendChild(span);
                     });
 
-                    // Click run header → toggle test items
                     runHeader.addEventListener('click', () => {
                         itemsDiv.style.display = itemsDiv.style.display === 'block' ? 'none' : 'block';
                     });
@@ -211,11 +229,11 @@ async function loadData() {
     });
 
     // Convert icon to letter for export
-    function convertStatusIcon(cellContent) {
-        if (cellContent === '✅') return 'P';
+function convertStatusIcon(cellContent) {
+    if (cellContent === '✅') return 'P';
     if (cellContent === '❌') return 'F';
     return cellContent || "-";
-    }
+}
 
     // Column headers for export
     const testingHeaders = [
