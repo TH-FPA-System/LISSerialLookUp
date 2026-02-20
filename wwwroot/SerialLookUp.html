@@ -10,8 +10,8 @@
     <!-- ✅ XLSX -->
     <script src="js/xlsx.full.min.js"></script>
     <!-- ✅ Cytoscape -->
-    <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
-
+    <!--<script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>-->
+    <script src="js/cytoscape.min.js"></script>
     <style>
         /* Cytoscape container */
         #cy {
@@ -285,7 +285,7 @@
             const params = new URLSearchParams(); params.set("SerialNo", serial); const line = "DISHDRAWER";
             let layoutConfig = [], trackHistory = [];
             try {
-                const res = await fetch(`/api/FactoryLine/${line}?serial=${encodeURIComponent(serial)}`);
+                const res = await fetch(`./api/FactoryLine/${line}?serial=${encodeURIComponent(serial)}`);
                 if (!res.ok) throw new Error(res.status);
                 const data = await res.json();
                 layoutConfig = data.nodes.map(n => ({ store: n.store, x: n.positionX, y: n.positionY, label: n.label }));
