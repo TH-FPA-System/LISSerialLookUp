@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Dishdrawer Production Flow</title>
+    <title>Dishdrawer Production Flow - Arrow Color</title>
 
     <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
 
@@ -27,7 +27,6 @@
             box-shadow: 0 8px 24px rgba(0,0,0,0.06);
         }
 
-        /* Tooltip */
         #tooltip {
             position: absolute;
             background: rgba(44,62,80,0.95);
@@ -47,7 +46,6 @@
                 color: #1abc9c;
             }
 
-        /* Last node glow */
         .active {
             animation: glow 1.6s ease-in-out infinite;
         }
@@ -67,7 +65,6 @@
         }
     </style>
 </head>
-
 <body>
 
     <h2>🏭 DISHDRAWER – Production Flow</h2>
@@ -77,20 +74,15 @@
     <script>
         (async () => {
 
-            /* ---------- PARAM ---------- */
             const params = new URLSearchParams(window.location.search);
             const line = params.get("line") || "DISHDRAWER";
             const serial = params.get("SerialNo");
-
-            if (!serial) {
-                alert("SerialNo is required");
-                return;
-            }
+            if (!serial) { alert("SerialNo is required"); return; }
 
             let layoutConfig = [];
             let trackHistory = [];
 
-            /* ---------- FETCH ---------- */
+            // Fetch data
             try {
                 const res = await fetch(`/api/FactoryLine/${line}?serial=${encodeURIComponent(serial)}`);
                 if (!res.ok) throw new Error(res.status);
@@ -105,29 +97,21 @@
                 }));
 
                 trackHistory = data.history.filter(h => h.store_location);
-
             } catch (e) {
                 console.error(e);
                 alert("Load failed");
                 return;
             }
 
-            /* ---------- STATUS ---------- */
-            const statusColor = {
-                P: "#27ae60",
-                R: "#3498db",
-                D: "#bdc3c7"
-            };
-
+            const statusColor = { P: "#27ae60", R: "#3498db", D: "#bdc3c7" };
             const trackingStatus = {};
             const historyMap = {};
-
             trackHistory.forEach(h => {
                 trackingStatus[h.store_location] = h.status;
                 historyMap[h.store_location] = h;
             });
 
-            /* ---------- CY ---------- */
+            // Cytoscape init
             const cy = cytoscape({
                 container: document.getElementById("cy"),
                 layout: { name: "preset" },
@@ -139,7 +123,7 @@
                             "background-color": "data(color)",
                             shape: "round-rectangle",
                             width: 140,
-                            height: 48,
+                            height: 56,
                             "font-size": 12,
                             "font-weight": 600,
                             color: "#fff",
@@ -148,7 +132,6 @@
                             "text-line-height": 1.4,
                             "text-valign": "center",
                             "text-halign": "center",
-                            "box-shadow": "0 6px 12px rgba(0,0,0,0.12)",
                             "overlay-opacity": 0
                         }
                     },
@@ -159,15 +142,15 @@
                             "target-arrow-shape": "triangle",
                             "arrow-scale": 0.9,
                             width: 2,
-                            "line-color": "#c7d0da",
-                            "target-arrow-color": "#c7d0da",
+                            "line-color": "data(color)",
+                            "target-arrow-color": "data(color)",
                             "line-opacity": 0.9
                         }
                     },
                     {
                         selector: "edge:hover",
                         style: {
-                            width: 4,
+                            width: 2,
                             "line-color": "#5dade2",
                             "target-arrow-color": "#5dade2"
                         }
@@ -175,113 +158,83 @@
                 ]
             });
 
-            /* ---------- RUN NO ASSIGNMENT ---------- */
+            // Assign Run Numbers
             let runNo = 1;
             const nodeRunMap = {};
-
-            const sortedHistory = [...trackHistory]
-                .sort((a, b) => new Date(a.last_maint) - new Date(b.last_maint));
-
+            const sortedHistory = [...trackHistory].sort((a, b) => new Date(a.last_maint) - new Date(b.last_maint));
             sortedHistory.forEach(h => {
                 if (!layoutConfig.find(n => n.store === h.store_location)) return;
                 if (!nodeRunMap[h.store_location]) nodeRunMap[h.store_location] = [];
                 nodeRunMap[h.store_location].push(runNo++);
             });
 
-            /* ---------- ADD NODES ---------- */
+            // Add nodes
             layoutConfig.forEach(cfg => {
                 const status = trackingStatus[cfg.store] || "D";
                 let label = cfg.label;
-
                 if (nodeRunMap[cfg.store]) {
-                    label =
-                        nodeRunMap[cfg.store].map(n => `[#${n}]`).join(" ") +
-                        "\n" + cfg.label;
+                    label = nodeRunMap[cfg.store].map(n => `[${n}]`).join(" ") + "\n\n" + cfg.label;
                 }
-
                 cy.add({
-                    data: {
-                        id: cfg.store,
-                        label,
-                        color: statusColor[status]
-                    },
-                    position: {
-                        x: cfg.x * 10,
-                        y: (100 - cfg.y) * 6
-                    }
+                    data: { id: cfg.store, label, color: statusColor[status] },
+                    position: { x: cfg.x * 10, y: (100 - cfg.y) * 6 }
                 });
             });
 
-            /* ---------- BUILD RUN SEQUENCE ---------- */
+            // Build run sequence
             const runSequence = [];
-
             Object.keys(nodeRunMap).forEach(store => {
                 nodeRunMap[store].forEach(no => {
                     runSequence.push({ runNo: no, store });
                 });
             });
-
             runSequence.sort((a, b) => a.runNo - b.runNo);
 
-            /* ---------- DRAW ARROWS FOLLOW RUN NO ---------- */
+            // Draw edges with color = target node
             let delay = 0;
-
             for (let i = 1; i < runSequence.length; i++) {
                 const from = runSequence[i - 1].store;
                 const to = runSequence[i].store;
+                if (cy.getElementById(from).empty() || cy.getElementById(to).empty()) continue;
+                //const color = cy.getElementById(to).data("color");
 
-                if (cy.getElementById(from).empty() || cy.getElementById(to).empty()) {
-                    continue;
-                }
+                const color = "#878787";
 
                 setTimeout(() => {
                     cy.add({
-                        data: {
-                            id: `e_${from}_${to}_${i}`,
-                            source: from,
-                            target: to
-                        }
+                        data: { id: `e-${from}-${to}-${i}`, source: from, target: to, color: color },
+                        style: { "line-color": color, "target-arrow-color": color }
                     });
                 }, delay);
-
                 delay += 450;
             }
 
-            /* ---------- LAST NODE ---------- */
+            // Highlight last node
             const lastRun = runSequence[runSequence.length - 1];
-            if (lastRun) {
-                cy.getElementById(lastRun.store).addClass("active");
-            }
+            if (lastRun) cy.getElementById(lastRun.store).addClass("active");
 
             cy.nodes().lock();
 
-            /* ---------- TOOLTIP ---------- */
+            // Tooltip
             const tooltip = document.getElementById("tooltip");
-
             cy.on("mouseover", "node", evt => {
-                const node = evt.target;
-                const h = historyMap[node.id()] || {};
-
+                const n = evt.target;
+                const h = historyMap[n.id()] || {};
                 tooltip.innerHTML = `
-                <b>${node.data("label").split("\n").pop()}</b><br/>
-                Status: <b>${trackingStatus[node.id()] || "D"}</b><br/>
+                <b>${n.data("label").split("\n").pop()}</b><br/>
+                Status: <b>${trackingStatus[n.id()] || "D"}</b><br/>
                 User: ${h.last_maint_logon || "-"}<br/>
                 Time: ${h.last_maint || "-"}
             `;
                 tooltip.style.opacity = 1;
             });
-
             cy.on("mousemove", "node", evt => {
                 tooltip.style.left = evt.originalEvent.pageX + "px";
                 tooltip.style.top = evt.originalEvent.pageY + "px";
             });
-
-            cy.on("mouseout", "node", () => {
-                tooltip.style.opacity = 0;
-            });
+            cy.on("mouseout", "node", () => { tooltip.style.opacity = 0; });
 
         })();
     </script>
-
 </body>
 </html>
