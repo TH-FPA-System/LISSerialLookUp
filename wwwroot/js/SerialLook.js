@@ -155,6 +155,7 @@ async function loadData() {
 </div>
     <div class="col description">${item.description || '-'}</div>
     <div class="col result"><span class="test-result">${item.testResult || '-'}</span></div>
+    <div class="col result"><span class="test-result">${item.testFault || '-'}</span></div>
     <div class="col status">
         <span class="${isFail ? 'fail' : 'pass'}">
             ${isFail ? '❌' : '✅'}
@@ -319,7 +320,7 @@ function exportTestingCSV() {
                     item.testPart || "-",
                     item.description || "-",
                     item.testResult || "-",
-                    "-", // Test Fault
+                    item.testFault || "-",
                     item.testStatus === "F" ? "F" : "P",
                     item.dateTested ? formatDate(new Date(item.dateTested)) : "-"
                 ];
@@ -373,7 +374,7 @@ function exportTestingExcel() {
                     item.testPart || "-",
                     item.description || "-",
                     item.testResult || "-",
-                    "-", // Test Fault
+                    item.testFault || "-",
                     item.testStatus === "F" ? "F" : "P",
                     item.dateTested ? formatDate(new Date(item.dateTested)) : "-"
                 ];
