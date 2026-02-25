@@ -2,6 +2,8 @@
    COLLAPSIBLE SECTIONS
    ============================================================ */
 document.addEventListener("DOMContentLoaded", () => {
+
+
     document.querySelectorAll(".collapsible").forEach(btn => {
         const content = btn.nextElementSibling;
         if (!content) return;
@@ -62,27 +64,58 @@ async function loadData() {
 
         const data = await response.json();
 
-        /* ---- Product Details ---- */
+        // ---- Product Details ----
         const pd = data.productDetails || {};
         document.getElementById("serialFPA").textContent = pd.serialFPA || "-";
-        document.getElementById("serialGEA").textContent = pd.serialGEA || "-";
-        document.getElementById("serialHAIER").textContent = pd.serialHAIER || "-";
+
+        // Serial GEA
+        const geaRow = document.getElementById("serialGEA");
+        geaRow.textContent = pd.serialGEA || "-";
+        geaRow.closest("tr").style.display = (!pd.serialGEA || pd.serialGEA === "-") ? "none" : "";
+
+        // Serial HAIER
+        const haierRow = document.getElementById("serialHAIER");
+        haierRow.textContent = pd.serialHAIER || "-";
+        haierRow.closest("tr").style.display = (!pd.serialHAIER || pd.serialHAIER === "-") ? "none" : "";
+
         document.getElementById("part").textContent = pd.part || "-";
         document.getElementById("partIssue").textContent = pd.partIssue || "-";
         document.getElementById("serialIssueDate").textContent = pd.serialIssueDate
             ? formatDate(new Date(pd.serialIssueDate))
             : "-";
-        document.getElementById("vaI_FoamCode").textContent = pd.vaI_FoamCode || "-";
+
+        // VAI Foam Code
+        const foamRow = document.getElementById("vaI_FoamCode");
+        foamRow.textContent = pd.vaI_FoamCode || "-";
+        foamRow.closest("tr").style.display = (!pd.vaI_FoamCode || pd.vaI_FoamCode === "-") ? "none" : "";
 
         const statusEl = document.getElementById("status");
         statusEl.textContent = pd.status || "-";
         statusEl.className = "";
         if (pd.status) statusEl.classList.add(`status-${pd.status}`);
 
+        /* ---- Check if DISHDRAWER product ---- */
+        const partText = document.getElementById("part").textContent || "";
+        const isDishDrawer = partText.toUpperCase().includes("DISHDRAWER");
+
+        /* ---- Show/Hide Production Flow section ---- */
+        document.querySelectorAll("button.collapsible").forEach(btn => {
+            if (!btn.textContent.includes("Production Flow")) return;
+            const content = btn.nextElementSibling;
+            if (isDishDrawer) {
+                btn.style.display = "";       // show the button
+                if (content) content.style.display = "none"; // reset collapsed
+            } else {
+                btn.style.display = "none";   // hide entire section
+                if (content) content.style.display = "none";
+            }
+        });
+
         /* ---- Auto-expand Sections ---- */
         function expandSectionByText(text) {
             document.querySelectorAll("button.collapsible").forEach(btn => {
                 if (!btn.textContent.includes(text)) return;
+                if (btn.style.display === "none") return; // skip hidden sections
                 const content = btn.nextElementSibling;
                 btn.classList.add("active");
                 if (content) content.style.display = "block";
@@ -91,7 +124,7 @@ async function loadData() {
 
         expandSectionByText("Tracking Information");
         expandSectionByText("Testing Information");
-        expandSectionByText("Production Flow");
+        if (isDishDrawer) expandSectionByText("Production Flow");
 
         /* ---- Clear Old Tables ---- */
         ["#tracking-table tbody", "#rework-table tbody"].forEach(sel => {
@@ -150,16 +183,7 @@ async function loadData() {
                 const taskDescription = latestRunItems[0].taskDescription || "";
                 const taskHeader = document.createElement("div");
                 taskHeader.className = "task-header";
-                // ❌ BROKEN — newlines inside the opening tag confuse innerHTML parsing
-                taskHeader.innerHTML = `
-  
-                href="..."
-                   target="_blank"
-                    class="task-link"
-                  >TASK ${taskId}</a>
-                `;
 
-                // ✅ FIXED — opening tag stays on one line; build the URL separately for readability
                 const taskUrl = `http://tiger/QA_LISSummary/ResultPartTest`
                     + `?startDate=${formatDateYYYYMMDD(yesterday)}`
                     + `&endDate=${formatDateYYYYMMDD(tomorrow)}`
@@ -269,8 +293,14 @@ async function loadData() {
             reworkBody.appendChild(tr);
         }
 
-        /* ---- Cytoscape Production Flow ---- */
-        loadProductionFlow(serial);
+        /* ---- Cytoscape Production Flow (DISHDRAWER only) ---- */
+        if (isDishDrawer) {
+            loadProductionFlow(serial);
+        } else {
+            // Clear any previous flow from a prior search
+            const cyContainer = document.getElementById("cy");
+            if (cyContainer) cyContainer.innerHTML = "";
+        }
 
     } catch (err) {
         overlay.style.display = "none";
@@ -463,4 +493,3 @@ function exportTestingExcel() {
     XLSX.utils.book_append_sheet(wb, ws, "Testing");
     XLSX.writeFile(wb, "testing.xlsx");
 }
-
