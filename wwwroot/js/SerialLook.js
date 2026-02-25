@@ -104,7 +104,15 @@
                             runItems.forEach(item => {
                                 const isFail = item.testStatus === "F"; const span = document.createElement('div'); span.innerHTML = `<div class="test-row ${isFail ? 'row-fail' : ''}"><div class="col part"><a href="http://tiger/LIS_ITEM/ItemCheck/GETPTBYCATASK?Part=&taskChk=&partNo=${item.testPart}" target="_blank">${item.testPart}</a></div><div class="col description">${item.description || '-'}</div><div class="col result"><span class="test-result">${item.testResult || '-'}</span></div><div class="col testFault">${item.testFault || '-'}</div><div class="col status"><span class="${isFail ? 'fail' : 'pass'}">${isFail ? '❌' : '✅'}</span></div></div>`; itemsDiv.appendChild(span);
                             });
-                            runHeader.addEventListener('click', () => {itemsDiv.style.display = itemsDiv.style.display === 'block' ? 'none' : 'block'; });
+                            runHeader.addEventListener('click', () => {
+                                const isOpen = itemsDiv.style.display === 'block';
+                                itemsDiv.style.display = isOpen ? 'none' : 'block';
+                                if (!isOpen) {
+                                    setTimeout(() => {
+                                        runHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }, 10);
+                                }
+                            });
     runDiv.appendChild(runHeader); runDiv.appendChild(itemsDiv); runsContainer.appendChild(runDiv);
                         });
                         taskHeader.addEventListener('click', () => {runsContainer.style.display = runsContainer.style.display === 'block' ? 'none' : 'block'; });

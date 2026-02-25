@@ -121,14 +121,13 @@ tr:hover {
     }
 
 .content {
-    display: block; /* default SHOW */
+    display: block;
     overflow: hidden;
     transition: max-height 0.3s ease, opacity 0.25s ease;
-    max-height: 2000px;
+    max-height: 999999px;
     opacity: 1;
     padding: 14px 0;
 }
-
     .content.collapsed {
         max-height: 0;
         opacity: 0;
@@ -350,6 +349,9 @@ tr:hover {
     gap: 10px; /* space between arrow and text */
 }
 
+    .run-header:hover {
+        background-color: #d6eaff;
+    }
     /* Arrow for run */
     .run-header::before {
         content: "▶";
@@ -398,8 +400,8 @@ tr:hover {
     font-family: Arial, sans-serif;
     font-size: 14px;
     color: #333;
-    max-height: 70vh; /* optional: prevent overflow of page */
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
     padding: 5px;
 }
 
@@ -434,7 +436,6 @@ tr:hover {
     font-weight: normal;
     border-left: 2px dashed #ddd;
 }
-
 /* Status colors */
 .pass {
     color: green;
